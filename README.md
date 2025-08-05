@@ -1,14 +1,16 @@
 # Actors
 
-A multi-agent conversation system backend that enables AI agents to collaborate and provide specialized expertise across different domains.
+A powerful AI agent framework that enables client-side tool execution with flexible LLM provider support and extensible multi-agent capabilities.
 
 ## Features
 
-- **Multi-Agent Architecture**: Specialized agents (Math Tutor, History Tutor, Triage Agent) that collaborate and hand off tasks
-- **MCP Integration**: Extensible tool system using Model Context Protocol servers
-- **Client Tools Support**: Enable client-side tool execution with callback mechanisms
-- **Authentication & Persistence**: Supabase integration for user management and conversation storage
-- **RESTful API**: FastAPI-based endpoints with streaming support
+- **Client-Side Tool Execution**: Revolutionary approach allowing tools to run directly in the client with secure callback mechanisms
+- **Flexible LLM Provider Support**: Choose your own AI provider - OpenRouter, OpenAI, Ollama, or any compatible service
+- **Multi-Agent Architecture**: Support for specialized agents that can collaborate and hand off complex tasks
+- **Conversation Management**: Full conversation lifecycle with star, archive, list, delete, and automatic title generation
+- **MCP Integration**: Extensible tool system using Model Context Protocol servers for seamless tool connectivity
+- **Authentication & Persistence**: Complete user management and conversation storage with Supabase
+- **Real-Time Streaming**: FastAPI-based endpoints with NDJSON streaming for responsive user experiences
 
 ## Quick Start
 
