@@ -11,7 +11,7 @@ def _create_cheap_model():
     config = get_config()
     if not config.openrouter_key:
         raise ValueError("OPENROUTER_KEY environment variable is required")
-    
+
     return OpenAIChatCompletionsModel(
         # model="mistralai/ministral-3b",
         model="google/gemma-2-9b-it",
@@ -26,7 +26,7 @@ def _create_model():
     config = get_config()
     if not config.openrouter_key:
         raise ValueError("OPENROUTER_KEY environment variable is required")
-    
+
     return OpenAIChatCompletionsModel(
         # model="openai/gpt-4.1-nano",
         model="mistralai/mistral-small-3.1-24b-instruct",

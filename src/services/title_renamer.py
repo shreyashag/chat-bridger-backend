@@ -1,6 +1,6 @@
 from agents import Runner
 
-from src.chats import ChatService
+from src.services.chat_service import ChatService
 from src.core.agent_factory import get_agent_by_key
 from src.core.agent_key import AgentKey
 from src.logging_config import get_logger

@@ -54,15 +54,11 @@ The API will be available at `http://localhost:8000` with interactive documentat
 ```bash
 # Run tests
 pytest
-
-# Run end-to-end chat flow test
-./test_chat_flow.sh
 ```
 
 ## Documentation
 
 - API documentation is automatically generated at `/docs` when running the server
-- See `CLAUDE.md` for detailed development documentation
 
 ## License
 

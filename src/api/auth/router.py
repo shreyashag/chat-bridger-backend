@@ -5,8 +5,8 @@ from fastapi.security import HTTPBearer
 
 from .database import AuthDatabase
 from .dependencies import (
-    authenticate_user, 
-    create_access_token, 
+    authenticate_user,
+    create_access_token,
     get_current_user,
     get_auth_database,
     generate_refresh_token,
@@ -16,13 +16,13 @@ from .dependencies import (
     revoke_all_refresh_tokens,
 )
 from .models import (
-    UserLogin, 
-    Token, 
+    UserLogin,
+    Token,
     TokenWithRefresh,
     RefreshTokenRequest,
-    UserResponse, 
-    UserModel, 
-    UserCreate
+    UserResponse,
+    UserModel,
+    UserCreate,
 )
 from ...config import get_config
 
@@ -83,7 +83,7 @@ async def login(
     access_token = create_access_token(
         data={"sub": user.id}, expires_delta=access_token_expires
     )
-    
+
     # Generate and store refresh token
     refresh_token = generate_refresh_token()
     await store_refresh_token(
@@ -106,7 +106,7 @@ async def refresh_token(
 ):
     """Refresh access token using refresh token"""
     app_config = get_config()
-    
+
     # Validate refresh token
     user = await validate_refresh_token(refresh_request.refresh_token, auth_db)
     if not user:
@@ -115,13 +115,13 @@ async def refresh_token(
             detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Generate new access token
     access_token_expires = timedelta(minutes=app_config.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user.id}, expires_delta=access_token_expires
     )
-    
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 

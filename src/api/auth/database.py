@@ -51,7 +51,9 @@ class AuthDatabase(ABC):
         pass
 
     @abstractmethod
-    async def update_refresh_token_usage(self, token_id: str, last_used_at: str) -> None:
+    async def update_refresh_token_usage(
+        self, token_id: str, last_used_at: str
+    ) -> None:
         """Update refresh token last usage time"""
         pass
 
@@ -201,13 +203,19 @@ class SupabaseAuthDatabase(AuthDatabase):
         """Store refresh token in database"""
         try:
             client = await self._get_client()
-            await client.table("refresh_tokens").insert({
-                "user_id": user_id,
-                "token_hash": token_hash,
-                "expires_at": expires_at,
-                "user_agent": user_agent,
-                "ip_address": ip_address,
-            }).execute()
+            await (
+                client.table("refresh_tokens")
+                .insert(
+                    {
+                        "user_id": user_id,
+                        "token_hash": token_hash,
+                        "expires_at": expires_at,
+                        "user_agent": user_agent,
+                        "ip_address": ip_address,
+                    }
+                )
+                .execute()
+            )
         except Exception as e:
             logger.error(f"Error storing refresh token: {e}", exc_info=True)
             raise
@@ -216,10 +224,14 @@ class SupabaseAuthDatabase(AuthDatabase):
         """Get refresh token by hash"""
         try:
             client = await self._get_client()
-            result = await client.table("refresh_tokens").select("*").eq(
-                "token_hash", token_hash
-            ).gte("expires_at", self._get_current_time()).execute()
-            
+            result = (
+                await client.table("refresh_tokens")
+                .select("*")
+                .eq("token_hash", token_hash)
+                .gte("expires_at", self._get_current_time())
+                .execute()
+            )
+
             if result.data:
                 return result.data[0]
             return None
@@ -227,13 +239,18 @@ class SupabaseAuthDatabase(AuthDatabase):
             logger.error(f"Error getting refresh token: {e}", exc_info=True)
             return None
 
-    async def update_refresh_token_usage(self, token_id: str, last_used_at: str) -> None:
+    async def update_refresh_token_usage(
+        self, token_id: str, last_used_at: str
+    ) -> None:
         """Update refresh token last usage time"""
         try:
             client = await self._get_client()
-            await client.table("refresh_tokens").update({
-                "last_used_at": last_used_at
-            }).eq("id", token_id).execute()
+            await (
+                client.table("refresh_tokens")
+                .update({"last_used_at": last_used_at})
+                .eq("id", token_id)
+                .execute()
+            )
         except Exception as e:
             logger.error(f"Error updating refresh token usage: {e}", exc_info=True)
 
@@ -241,9 +258,12 @@ class SupabaseAuthDatabase(AuthDatabase):
         """Delete a refresh token"""
         try:
             client = await self._get_client()
-            await client.table("refresh_tokens").delete().eq(
-                "token_hash", token_hash
-            ).execute()
+            await (
+                client.table("refresh_tokens")
+                .delete()
+                .eq("token_hash", token_hash)
+                .execute()
+            )
         except Exception as e:
             logger.error(f"Error deleting refresh token: {e}", exc_info=True)
 
@@ -251,13 +271,14 @@ class SupabaseAuthDatabase(AuthDatabase):
         """Delete all refresh tokens for a user"""
         try:
             client = await self._get_client()
-            await client.table("refresh_tokens").delete().eq(
-                "user_id", user_id
-            ).execute()
+            await (
+                client.table("refresh_tokens").delete().eq("user_id", user_id).execute()
+            )
         except Exception as e:
             logger.error(f"Error deleting user refresh tokens: {e}", exc_info=True)
 
     def _get_current_time(self) -> str:
         """Get current time in ISO format"""
         from datetime import datetime
+
         return datetime.utcnow().isoformat()

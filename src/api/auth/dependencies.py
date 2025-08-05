@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from functools import lru_cache
 from typing import Optional, Dict, Tuple
 import hashlib
 import secrets
@@ -74,7 +73,7 @@ def verify_token(token: str) -> Optional[str]:
 def _cached_verify_token(token: str) -> Optional[str]:
     """Cached version of token verification with expiration awareness"""
     current_time = time.time()
-    
+
     # Check if token is in cache and not expired
     if token in _token_cache:
         user_id, exp_timestamp = _token_cache[token]
@@ -83,7 +82,7 @@ def _cached_verify_token(token: str) -> Optional[str]:
         else:
             # Token expired, remove from cache
             del _token_cache[token]
-    
+
     # Verify token and cache result with expiration
     app_config = get_config()
     try:
@@ -92,22 +91,24 @@ def _cached_verify_token(token: str) -> Optional[str]:
         )
         user_id: str = payload.get("sub")
         exp: int = payload.get("exp", 0)
-        
+
         if user_id and exp > current_time:
             # Cache the token with its expiration time
             _token_cache[token] = (user_id, float(exp))
-            
+
             # Clean up old entries if cache gets too large
             if len(_token_cache) > 1000:
                 # Remove expired entries
-                expired_tokens = [k for k, (_, exp) in _token_cache.items() if exp <= current_time]
+                expired_tokens = [
+                    k for k, (_, exp) in _token_cache.items() if exp <= current_time
+                ]
                 for k in expired_tokens:
                     del _token_cache[k]
-            
+
             return user_id
     except jwt.PyJWTError:
         pass
-    
+
     return None
 
 
@@ -185,10 +186,10 @@ async def store_refresh_token(
     """Store refresh token in database"""
     if expires_delta is None:
         expires_delta = timedelta(days=30)  # Default 30 days for refresh tokens
-    
+
     token_hash = hash_refresh_token(refresh_token)
     expires_at = datetime.utcnow() + expires_delta
-    
+
     await auth_db.store_refresh_token(
         user_id=user_id,
         token_hash=token_hash,
@@ -204,18 +205,17 @@ async def validate_refresh_token(
 ) -> Optional[UserModel]:
     """Validate refresh token and return associated user"""
     token_hash = hash_refresh_token(refresh_token)
-    
+
     # Get token from database
     token_data = await auth_db.get_refresh_token(token_hash)
     if not token_data:
         return None
-    
+
     # Update last_used_at
     await auth_db.update_refresh_token_usage(
-        token_data["id"], 
-        datetime.utcnow().isoformat()
+        token_data["id"], datetime.utcnow().isoformat()
     )
-    
+
     # Get user
     user = await auth_db.get_user_by_id(token_data["user_id"])
     return user

@@ -13,7 +13,7 @@ from src.api.models.responses import (
     DeleteAllConversationsResponse,
     GetConversationResponse,
 )
-from src.chats import ChatService
+from src.services.chat_service import ChatService
 from src.core.agent_factory import get_agent_by_key
 from src.core.agent_key import AgentKey
 from src.core.agent_loop import AgentLoop
@@ -121,23 +121,29 @@ async def send_message(
             request.session_id,
             user_id,
         )
-        
+
         # Determine if this is a continuation (has tool results)
         is_continuation = bool(request.tool_results)
-        
+
         if is_continuation:
             # Continue after client tool execution
             stream = AgentLoop.continue_after_client_tools(
-                agent, EventProcessor(), conversation_manager,
-                request.tool_results, request.client_tools
+                agent,
+                EventProcessor(),
+                conversation_manager,
+                request.tool_results,
+                request.client_tools,
             )
         else:
             # Initial message
             stream = AgentLoop.run_agent_stream(
-                agent, EventProcessor(), conversation_manager,
-                request.message, request.client_tools
+                agent,
+                EventProcessor(),
+                conversation_manager,
+                request.message,
+                request.client_tools,
             )
-        
+
         return StreamingResponse(stream, media_type="application/x-ndjson")
 
     except Exception as e:
@@ -438,5 +444,3 @@ async def star_conversation(session_id: str, user_id: str = Depends(get_user_id)
         raise HTTPException(
             status_code=500, detail=f"Failed to star conversation: {str(e)}"
         )
-
-

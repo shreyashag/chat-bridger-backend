@@ -1,6 +1,6 @@
 [project]
 name = "actors"
-dynamic = ["version"]
+version = "0.1.0"
 description = "Multi-agent AI system with client-side tool execution"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -28,6 +28,11 @@ dependencies = [
 requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.dynamic]
-version = {attr = "src.__version__.__version__"}
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.2.0",
+]
 

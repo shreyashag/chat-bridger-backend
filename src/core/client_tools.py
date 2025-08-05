@@ -39,13 +39,15 @@ def create_client_tool_function(
         )
 
         # Return structured pending result for streaming detection
-        return json.dumps({
-            "status": "PENDING_CLIENT_EXECUTION",
-            "tool_name": client_tool.name,
-            "tool_call_id": tool_call_id,
-            "parameters": parameters,
-            "message": f"Waiting for client execution of {client_tool.name}"
-        })
+        return json.dumps(
+            {
+                "status": "PENDING_CLIENT_EXECUTION",
+                "tool_name": client_tool.name,
+                "tool_call_id": tool_call_id,
+                "parameters": parameters,
+                "message": f"Waiting for client execution of {client_tool.name}",
+            }
+        )
 
     # Use the client tool's params_schema or create a basic one
     params_schema = client_tool.params_schema or {

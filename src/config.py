@@ -54,7 +54,8 @@ class Config(BaseSettings):
 
     model_config = {
         "env_file": [
-            Path(__file__).parent.parent / ".env.local",  # Local dev keys (will be missing in Docker)
+            Path(__file__).parent.parent
+            / ".env.local",  # Local dev keys (will be missing in Docker)
         ],
         "case_sensitive": False,
         "env_ignore_empty": True,  # Ignore missing env files
@@ -80,9 +81,13 @@ class Config(BaseSettings):
     def validate_jwt_secret_key(cls, v):
         """Validate JWT secret key is provided"""
         if not v:
-            raise ValueError("JWT_SECRET_KEY environment variable is required for security")
+            raise ValueError(
+                "JWT_SECRET_KEY environment variable is required for security"
+            )
         if len(v) < 32:
-            raise ValueError("JWT_SECRET_KEY must be at least 32 characters long for security")
+            raise ValueError(
+                "JWT_SECRET_KEY must be at least 32 characters long for security"
+            )
         return v
 
     @property
