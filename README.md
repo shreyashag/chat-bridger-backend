@@ -38,12 +38,8 @@ pip install uv
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd actors
-
-# Install dependencies
-uv sync
-
+git clone https://github.com/shreyashag/chat-bridger-backend
+cd chat-bridger-backend
 # Set up environment variables
 cp .env.example .env.local
 # Edit .env.local with your API keys and configuration
@@ -53,10 +49,51 @@ cp .env.example .env.local
 
 See `.env.example` for a complete list of required and optional environment variables with detailed setup instructions.
 
+### Supabase Setup
+
+This project uses Supabase for authentication and conversation persistence. You'll need a Supabase project before running the server.
+
+1. Create a project at [supabase.com](https://supabase.com) and note your **Project URL** and **Service Role Key** (under Project Settings → API).
+
+2. Run the schema to create the required tables. Open the **SQL Editor** in the Supabase dashboard, paste the contents of `src/schema.sql`, and click **Run**.
+
+   This creates four tables:
+   - `users` — accounts with bcrypt-hashed passwords
+   - `conversations` — conversation metadata per user
+   - `messages` — individual messages linked to conversations (cascade-deleted with conversation)
+   - `refresh_tokens` — JWT refresh token tracking (cascade-deleted with user)
+
+   > **Note:** The full file must be run in one go — the `update_updated_at_column` function is referenced by triggers defined later in the file.
+
+3. Add the following to your `.env.local`:
+
+   ```
+   SUPABASE_URL=https://<project-ref>.supabase.co
+   SUPABASE_KEY=<your-service-role-key>
+   JWT_SECRET_KEY=<random-string-minimum-32-chars>
+   ```
+
+   Optionally, you can point auth and session storage at separate Supabase projects using `SUPABASE_AUTH_URL`/`SUPABASE_AUTH_KEY` and `SESSIONS_SUPABASE_URL`/`SESSIONS_SUPABASE_KEY`.
+
+### Authentication
+
+The API exposes the following auth endpoints:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/auth/register` | Create a new account |
+| `POST` | `/auth/login` | Login — returns an access token and a refresh token |
+| `POST` | `/auth/refresh` | Exchange a refresh token for a new access token |
+| `POST` | `/auth/logout` | Invalidate the current refresh token |
+| `POST` | `/auth/logout-all` | Invalidate all sessions for the authenticated user |
+| `GET`  | `/auth/me` | Get current user details |
+
+Access tokens are short-lived JWTs (default 30 minutes, configurable via `ACCESS_TOKEN_EXPIRE_MINUTES`). Use the refresh token to obtain new access tokens without re-authenticating.
+
 ### Running the Server
 
 ```bash
-python -m src.api.api
+docker compose up --build
 ```
 
 The API will be available at `http://localhost:8000` with interactive documentation at `/docs`.
