@@ -1,6 +1,14 @@
 version: '3.8'
 
 services:
+  mcp-time:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp-time
+    ports:
+      - "11001:11001"
+    restart: unless-stopped
+
   app:
     build: .
     ports:
@@ -8,8 +16,11 @@ services:
     environment:
       - LOG_LEVEL=INFO
       - LOG_FILE=logs/actors.log
+      - TIME_MCP_SERVER_URL=http://mcp-time:11001/sse
     env_file:
       - .env.local
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
+    depends_on:
+      - mcp-time

@@ -29,7 +29,7 @@ def _create_model():
 
     return OpenAIChatCompletionsModel(
         # model="openai/gpt-4.1-nano",
-        model="mistralai/mistral-small-3.1-24b-instruct",
+        model="google/gemini-2.0-flash-001",
         openai_client=AsyncOpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=config.openrouter_key,

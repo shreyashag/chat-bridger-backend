@@ -116,7 +116,6 @@ async def _create_triage_agent():
         calculator,
         get_weather,
         get_latitude_and_longitude,
-        get_current_time,
         date_calculator,
         date_difference,
         unit_converter,
