@@ -1,0 +1,878 @@
+manifest:
+  version: "0.1.2"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: shreyashag/chat-bridger-backend
+    source: https://github.com/shreyashag/chat-bridger-backend
+    branch: master
+    commit: "16d98785"
+    scope: [src/api/auth/dependencies.py, src/api/models/responses.py, src/api/routers/agents.py, src/api/routers/chat.py,
+      src/api/routers/tools.py, src/config.py, src/core/agent_factory.py, src/core/agent_key.py, src/core/agent_loop.py, src/core/event_handlers.py,
+      src/core/mcp_manager.py, src/core/model_factory.py, src/logging_config.py, src/tooling/mcp_servers.py, src/tooling/tools.py]
+  issued:
+    by: A2AS.org
+    at: '2026-01-26T16:16:19Z'
+  signatures:
+    digest: sha256:bXp6tF7ZcSP1LgyUPsCKm8O2N7FSbLjxPzD9Tb0IkzM
+    key: ed25519:VmWyzEPA5LKF3879sOMh8a2R_H9JiKgOzNpeYtbEHBI
+    sig: ed25519:csRGFF16qiEmURa3hNfztBrw6NSMG5xm82GH9qirO3RDS3NTyXXf14aFDccxd2mYJ3mQcl50-D1T0II2-DkaBg
+
+agents:
+  agent:
+    type: instance
+    models: [model]
+    mcp: [mcp_servers]
+    params:
+      function: _create_triage_agent
+      name: Triage Agent
+      model_settings: ModelSettings(temperature=0.8, top_p=0.95, frequency_penalty=0.1, presence_penalty=0.1)
+      instructions: [You are a helpful assistant., READ ALL THE RULES FIRST AND FOLLOW THEM CAREFULLY., 'RULES:', '1. Use
+          available tools when needed, and be informative and assist the user with the queries.', '2. If you use tools, first
+          tell the user you will be using a tool.', '3. Then, use the tool.', '4. After that, summarise the tool output and
+          use it to answer the user''s query.']
+  agent._create_chat_title_renamer:
+    type: factory
+    models: [model]
+    params:
+      function: _create_chat_title_renamer
+      name: Chat title renamer
+      model_settings: ModelSettings(temperature=0.3, max_tokens=3000)
+      instructions: [You are an expert at providing meaningful titles for the given chat]
+  agent._create_history_tutor:
+    type: factory
+    models: [model]
+    tools: [tools]
+    params:
+      function: _create_history_tutor
+      name: History Tutor
+      handoff_description: Specialist agent for history questions
+      model_settings: ModelSettings(temperature=0.3, max_tokens=3000)
+      instructions: [You provide help with history problems. Explain your reasoning at each step and include examples]
+  agent._create_math_tutor:
+    type: factory
+    models: [model]
+    tools: [tools]
+    params:
+      function: _create_math_tutor
+      name: Math Tutor
+      handoff_description: Specialist agent for math questions
+      model_settings: ModelSettings(temperature=0.3, max_tokens=3000)
+      instructions: [You provide help with math problems. Explain your reasoning at each step and include examples]
+
+models:
+  model:
+    type: variable
+    agents: [agent._create_chat_title_renamer, agent._create_history_tutor, agent._create_math_tutor, agent]
+
+tools:
+  calculator:
+    type: decorator
+    params:
+      description: Can do calculations!
+  currency_converter:
+    type: decorator
+    params:
+      description: |-
+        Convert currency amounts using exchange rates.
+        :param amount: The amount to convert
+        :param from_currency: The source currency code (e.g., 'USD', 'EUR', 'GBP')
+        :param to_currency: The target currency code
+  date_calculator:
+    type: decorator
+    params:
+      description: |-
+        Add or subtract days from a date.
+        :param date: The starting date in YYYY-MM-DD format
+        :param operation: Either 'add' or 'subtract'
+        :param days: Number of days to add or subtract
+  date_difference:
+    type: decorator
+    params:
+      description: |-
+        Calculate the difference between two dates.
+        :param start_date: The starting date in YYYY-MM-DD format
+        :param end_date: The ending date in YYYY-MM-DD format
+  get_current_time:
+    type: decorator
+    params:
+      description: |-
+        Get the current time in a specific timezone.
+        :param timezone: The timezone name (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo')
+  get_latitude_and_longitude:
+    type: decorator
+    params:
+      description: |-
+        Get the latitude and longitude coordinates for a given place name.
+        :param place: The name of the place or address to geocode.
+  get_stock_info_yfinance:
+    type: decorator
+    params:
+      description: |-
+        Get detailed stock information using Yahoo Finance.
+        :param symbol: The stock symbol (e.g., 'AAPL', 'GOOGL', 'MSFT')
+        :param info_type: Type of info to retrieve - 'summary', 'price', 'financials', 'holders', 'news'
+  get_stock_price:
+    type: decorator
+    params:
+      description: |-
+        Get current stock price for a given symbol.
+        :param symbol: The stock symbol (e.g., 'AAPL', 'GOOGL', 'MSFT')
+  get_weather:
+    type: decorator
+    params:
+      description: |-
+        Get the weather for a given city.
+        :param lat: The latitude of the city.
+        :param long: The longitude of the city.
+  tools:
+    type: variable
+    agents: [agent._create_history_tutor, agent._create_math_tutor]
+    params:
+      dynamic: "True"
+  unit_converter:
+    type: decorator
+    params:
+      description: |-
+        Convert between different units of measurement.
+        :param value: The numeric value to convert
+        :param from_unit: The unit to convert from (e.g., 'meters', 'feet', 'kg', 'pounds', 'celsius', 'fahrenheit')
+        :param to_unit: The unit to convert to
+
+mcp:
+  mcp_servers:
+    type: process
+    agents: [agent]
+    params:
+      dynamic: "True"
+  server.0:
+    type: network
+    url: weather_server_url
+    params:
+      class: MCPServerSse
+      cache_tools_list: "True"
+      name: weather_us
+      client_session_timeout_seconds: "30"
+      instance: server
+  server.1:
+    type: network
+    url: time_server_url
+    params:
+      class: MCPServerSse
+      cache_tools_list: "True"
+      name: time
+      client_session_timeout_seconds: "30"
+      instance: server
+      function: _create_time
+  server.2:
+    type: network
+    url: https://mcp.context7.com/mcp
+    params:
+      class: MCPServerStreamableHttp
+      cache_tools_list: "False"
+      name: context7
+      instance: server
+      function: _create_context7
+  server.3:
+    type: process
+    params:
+      class: MCPServerStdio
+      cache_tools_list: "True"
+      name: perplexity-ask
+      instance: server
+      function: _create_perplexity_ask
+
+imports:
+  ABC: abc.ABC
+  abstractmethod: abc.abstractmethod
+  acreate_client: supabase.acreate_client
+  Agent: agents.Agent
+  AGENT_FACTORIES: src.core.agent_factory.AGENT_FACTORIES
+  AgentKey: src.core.agent_key.AgentKey
+  AgentLoop: src.core.agent_loop.AgentLoop
+  agents_router: src.api.routers.agents_router
+  AgentSummary: src.api.models.AgentSummary
+  AgentUpdatedStreamEvent: agents.AgentUpdatedStreamEvent
+  Any: typing.Any
+  APIRouter: fastapi.APIRouter
+  AsyncClient: supabase.AsyncClient
+  AsyncGenerator: typing.AsyncGenerator
+  asyncio: asyncio
+  AsyncOpenAI: openai.AsyncOpenAI
+  auth_router: src.api.auth.router.router
+  AuthDatabase: database.AuthDatabase
+  authenticate_user: dependencies.authenticate_user
+  AVAILABLE_TOOLS: src.tooling.tools.AVAILABLE_TOOLS
+  BackgroundTasks: fastapi.BackgroundTasks
+  BaseModel: pydantic.BaseModel
+  BaseSettings: pydantic_settings.BaseSettings
+  calculator: src.tooling.tools.calculator
+  Callable: typing.Callable
+  ChatService: src.services.chat_service.ChatService
+  ChatTitleRenamer: src.services.title_renamer.ChatTitleRenamer
+  ClientToolDefinition: src.api.models.requests.ClientToolDefinition
+  ClientToolResult: src.api.models.requests.ClientToolResult
+  ClientToolResultRequest: requests.ClientToolResultRequest
+  ConversationContextManager: src.services.conversation_context_manager.ConversationContextManager
+  ConversationListResponse: src.api.models.ConversationListResponse
+  ConversationSummary: responses.ConversationSummary
+  convert_client_tools_to_function_tools: src.core.client_tools.convert_client_tools_to_function_tools
+  create_access_token: dependencies.create_access_token
+  create_model_by_key: src.core.model_factory.create_model_by_key
+  currency_converter: src.tooling.tools.currency_converter
+  date_calculator: src.tooling.tools.date_calculator
+  date_difference: src.tooling.tools.date_difference
+  datetime: datetime.datetime
+  DeleteAllConversationsResponse: src.api.models.responses.DeleteAllConversationsResponse
+  DeleteConversationResponse: src.api.models.responses.DeleteConversationResponse
+  Depends: fastapi.Depends
+  Dict: typing.Dict
+  Enum: enum.Enum
+  EventProcessor: src.core.event_handlers.EventProcessor
+  FastAPI: fastapi.FastAPI
+  Field: pydantic.Field
+  field_validator: pydantic.field_validator
+  function_tool: agents.function_tool
+  FunctionTool: agents.FunctionTool
+  generate_refresh_token: dependencies.generate_refresh_token
+  get_agent_by_key: src.core.agent_factory.get_agent_by_key
+  get_auth_database: dependencies.get_auth_database
+  get_config: src.config.get_config
+  get_current_time: src.tooling.tools.get_current_time
+  get_current_user: dependencies.get_current_user
+  get_latitude_and_longitude: src.tooling.tools.get_latitude_and_longitude
+  get_logger: src.logging_config.get_logger
+  get_mcp_servers: src.core.mcp_manager.get_mcp_servers
+  get_session_factory_dependency: src.openai_agents_extensions.session_factory.get_session_factory_dependency
+  get_stock_info_yfinance: src.tooling.tools.get_stock_info_yfinance
+  get_stock_price: src.tooling.tools.get_stock_price
+  get_user_id: src.api.auth.dependencies.get_user_id
+  get_weather: src.tooling.tools.get_weather
+  GetConversationResponse: src.api.models.responses.GetConversationResponse
+  handlers: logging.handlers
+  hashlib: hashlib
+  health_router: src.api.routers.health_router
+  HTTPAuthorizationCredentials: fastapi.security.HTTPAuthorizationCredentials
+  HTTPBearer: fastapi.security.HTTPBearer
+  HTTPException: fastapi.HTTPException
+  ItemHelpers: agents.ItemHelpers
+  json: json
+  jwt: jwt
+  List: typing.List
+  logging: logging
+  lru_cache: functools.lru_cache
+  MCP_SERVER_FACTORIES: src.tooling.mcp_servers.MCP_SERVER_FACTORIES
+  MCPManager: src.core.mcp_manager.MCPManager
+  MCPServerSse: agents.mcp.MCPServerSse
+  MCPServerStdio: agents.mcp.MCPServerStdio
+  MCPServerStdioParams: agents.mcp.MCPServerStdioParams
+  MCPServerStreamableHttp: agents.mcp.MCPServerStreamableHttp
+  MessageRequest: src.api.models.MessageRequest
+  MessageResponse: responses.MessageResponse
+  messages_router: src.api.routers.messages_router
+  ModelSettings: agents.ModelSettings
+  Nominatim: geopy.geocoders.Nominatim
+  OpenAIChatCompletionsModel: agents.OpenAIChatCompletionsModel
+  Optional: typing.Optional
+  Path: pathlib.Path
+  pytz: pytz
+  RefreshTokenRequest: models.RefreshTokenRequest
+  requests: requests
+  ResponseCompletedEvent: openai.types.responses.ResponseCompletedEvent
+  ResponseContentPartAddedEvent: openai.types.responses.ResponseContentPartAddedEvent
+  ResponseContentPartDoneEvent: openai.types.responses.ResponseContentPartDoneEvent
+  ResponseCreatedEvent: openai.types.responses.ResponseCreatedEvent
+  ResponseFunctionCallArgumentsDeltaEvent: openai.types.responses.ResponseFunctionCallArgumentsDeltaEvent
+  ResponseOutputItemAddedEvent: openai.types.responses.ResponseOutputItemAddedEvent
+  ResponseOutputItemDoneEvent: openai.types.responses.ResponseOutputItemDoneEvent
+  ResponseTextDeltaEvent: openai.types.responses.ResponseTextDeltaEvent
+  revoke_all_refresh_tokens: dependencies.revoke_all_refresh_tokens
+  revoke_refresh_token: dependencies.revoke_refresh_token
+  RunItemStreamEvent: agents.RunItemStreamEvent
+  Runner: agents.Runner
+  secrets: secrets
+  SEND_MESSAGE_RESPONSES: src.api.docs.api_docs.SEND_MESSAGE_RESPONSES
+  Session: agents.memory.session.Session
+  SessionABC: agents.memory.session.SessionABC
+  SessionFactory: src.openai_agents_extensions.session_factory.SessionFactory
+  set_tracing_disabled: agents.set_tracing_disabled
+  setup_logging: src.logging_config.setup_logging
+  status: fastapi.status
+  StopAtTools: agents.agent.StopAtTools
+  store_refresh_token: dependencies.store_refresh_token
+  StreamingResponse: fastapi.responses.StreamingResponse
+  SupabaseAuthDatabase: database.SupabaseAuthDatabase
+  time: time
+  timedelta: datetime.timedelta
+  timezone: datetime.timezone
+  Token: models.Token
+  TokenWithRefresh: models.TokenWithRefresh
+  ToolContext: agents.tool_context.ToolContext
+  ToolMetadata: src.tooling.tools.ToolMetadata
+  tools_router: src.api.routers.tools_router
+  TResponseInputItem: agents.TResponseInputItem
+  Tuple: typing.Tuple
+  Union: typing.Union
+  unit_converter: src.tooling.tools.unit_converter
+  UserCreate: models.UserCreate
+  UserLogin: models.UserLogin
+  UserModel: models.UserModel
+  UserResponse: models.UserResponse
+  validate_refresh_token: dependencies.validate_refresh_token
+  yf: yfinance
+
+functions:
+  __getattr__:
+    type: sync
+    module: src.core.mcp_manager
+    args: [self, name]
+    params:
+      returns: Any
+  __init__:
+    type: sync
+    module: src.core.mcp_manager
+    args: [self]
+  _cached_verify_token:
+    type: sync
+    module: src.api.auth.dependencies
+    args: [token]
+    params:
+      returns: Optional[str]
+  _connect_server:
+    type: async
+    module: src.core.mcp_manager
+    args: [self, server_name]
+  _create_chat_title_renamer:
+    type: async
+    module: src.core.agent_factory
+  _create_cheap_model:
+    type: sync
+    module: src.core.model_factory
+  _create_client_tool_event:
+    type: sync
+    module: src.core.agent_loop
+    args: [tool_call]
+    params:
+      returns: str
+  _create_context7:
+    type: async
+    module: src.tooling.mcp_servers
+  _create_history_tutor:
+    type: async
+    module: src.core.agent_factory
+  _create_math_tutor:
+    type: async
+    module: src.core.agent_factory
+  _create_model:
+    type: sync
+    module: src.core.model_factory
+  _create_perplexity_ask:
+    type: async
+    module: src.tooling.mcp_servers
+  _create_session:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self]
+  _create_time:
+    type: async
+    module: src.tooling.mcp_servers
+  _create_triage_agent:
+    type: async
+    module: src.core.agent_factory
+  _create_weather_us:
+    type: async
+    module: src.tooling.mcp_servers
+  _ensure_initialized:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self]
+  _get_current_time:
+    type: sync
+    module: src.openai_agents_extensions.supabase_session
+  _get_or_create_client:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self]
+    params:
+      returns: AsyncClient
+  _initialize:
+    type: async
+    module: src.core.mcp_manager
+    args: [self]
+  _is_empty_user_message:
+    type: sync
+    module: src.openai_agents_extensions.supabase_session
+    args: [self, item]
+    params:
+      returns: bool
+  _load_or_create_session:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self]
+  _load_session:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self]
+    params:
+      returns: bool
+  _noop:
+    type: async
+    module: src.core.mcp_manager
+    args: [self]
+  add_items:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self, items]
+    params:
+      returns: None
+  archive_conversation:
+    type: async
+    module: src.api.routers.chat
+    args: [session_id, user_id]
+  auth_supabase_key:
+    type: sync
+    module: src.config
+    args: [self]
+    params:
+      returns: str
+  auth_supabase_url:
+    type: sync
+    module: src.config
+    args: [self]
+    params:
+      returns: str
+  authenticate_user:
+    type: async
+    module: src.api.auth.dependencies
+    args: [email, password, auth_db]
+    params:
+      returns: Optional[UserModel]
+  calculator:
+    type: tool
+    module: src.tooling.tools
+    args: [expression]
+    params:
+      returns: str
+  clear_session:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self]
+    params:
+      returns: None
+  client_tool_handler:
+    type: async
+    module: src.core.client_tools
+    args: [ctx, args]
+    params:
+      returns: str
+  close_connection_pool:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [cls]
+  configure_loggers:
+    type: sync
+    module: src.logging_config
+    params:
+      returns: None
+  continue_after_client_tools:
+    type: async
+    module: src.core.agent_loop
+    args: [agent, event_processor, conversation_manager, tool_results, client_tools]
+    params:
+      returns: AsyncGenerator
+  convert_client_tools_to_function_tools:
+    type: sync
+    module: src.core.client_tools
+    args: [client_tools, callback]
+    params:
+      returns: List[FunctionTool]
+  create:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [cls, session_id, supabase_url, supabase_key, user_id, conversations_table, messages_table]
+  create_access_token:
+    type: sync
+    module: src.api.auth.dependencies
+    args: [data, expires_delta]
+    params:
+      returns: str
+  create_client_tool_function:
+    type: sync
+    module: src.core.client_tools
+    args: [client_tool, callback]
+    params:
+      returns: FunctionTool
+  create_mcp_servers:
+    type: async
+    module: src.tooling.mcp_servers
+    args: [server_refs]
+    params:
+      returns: List[Union]
+  create_model_by_key:
+    type: sync
+    module: src.core.model_factory
+    args: [model_key, overrides]
+    params:
+      returns: OpenAIChatCompletionsModel
+  currency_converter:
+    type: tool
+    module: src.tooling.tools
+    args: [amount, from_currency, to_currency]
+    params:
+      returns: str
+  date_calculator:
+    type: tool
+    module: src.tooling.tools
+    args: [date, operation, days]
+    params:
+      returns: str
+  date_difference:
+    type: tool
+    module: src.tooling.tools
+    args: [start_date, end_date]
+    params:
+      returns: str
+  decorator:
+    type: sync
+    module: src.tooling.tools
+    args: [func]
+    params:
+      returns: FunctionTool
+  delete_all_conversations:
+    type: async
+    module: src.api.routers.chat
+    args: [user_id]
+  delete_conversation:
+    type: async
+    module: src.api.routers.chat
+    args: [session_id, user_id]
+  disconnect_all:
+    type: async
+    module: src.core.mcp_manager
+    args: [self]
+  disconnect_server:
+    type: async
+    module: src.core.mcp_manager
+    args: [self, server_name]
+  generate_refresh_token:
+    type: sync
+    module: src.api.auth.dependencies
+    params:
+      returns: str
+  generate_title_in_background_and_update:
+    type: async
+    module: src.services.title_renamer
+    args: [session_id, user_id]
+  get_agent_by_key:
+    type: async
+    module: src.core.agent_factory
+    args: [agent_key]
+    params:
+      returns: Agent
+  get_agents:
+    type: async
+    module: src.api.routers.agents
+  get_auth_database:
+    type: sync
+    module: src.api.auth.dependencies
+    params:
+      returns: AuthDatabase
+  get_config:
+    type: sync
+    module: src.config
+    params:
+      returns: Config
+  get_conversation:
+    type: async
+    module: src.api.routers.chat
+    args: [session_id, user_id, limit, offset]
+  get_current_time:
+    type: tool
+    module: src.tooling.tools
+    args: [timezone]
+    params:
+      returns: str
+  get_current_user:
+    type: async
+    module: src.api.auth.dependencies
+    args: [credentials, auth_db]
+    params:
+      returns: UserModel
+  get_current_user_info:
+    type: async
+    module: src.api.auth.router
+    args: [current_user]
+  get_instance:
+    type: async
+    module: src.core.mcp_manager
+    args: [cls]
+    params:
+      returns: MCPManager
+  get_items:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self, limit]
+    params:
+      returns: List[TResponseInputItem]
+  get_latitude_and_longitude:
+    type: tool
+    module: src.tooling.tools
+    args: [place]
+    params:
+      returns: str
+  get_logger:
+    type: sync
+    module: src.logging_config
+    args: [name]
+    params:
+      returns: logging.Logger
+  get_mcp_server:
+    type: async
+    module: src.core.mcp_manager
+    args: [server_name]
+    params:
+      returns: MCPServerProxy
+  get_mcp_servers:
+    type: async
+    module: src.core.mcp_manager
+    args: [server_names]
+    params:
+      returns: List[MCPServerProxy]
+  get_message_with_context:
+    type: async
+    module: src.services.conversation_context_manager
+    args: [self, current_message, memories]
+  get_server:
+    type: async
+    module: src.core.mcp_manager
+    args: [self, server_name]
+    params:
+      returns: MCPServerProxy
+  get_servers:
+    type: async
+    module: src.core.mcp_manager
+    args: [self, server_names]
+    params:
+      returns: List[MCPServerProxy]
+  get_stock_info_yfinance:
+    type: tool
+    module: src.tooling.tools
+    args: [symbol, info_type]
+    params:
+      returns: str
+  get_stock_price:
+    type: tool
+    module: src.tooling.tools
+    args: [symbol]
+    params:
+      returns: str
+  get_user_id:
+    type: async
+    module: src.api.auth.dependencies
+    args: [credentials]
+    params:
+      returns: str
+  get_weather:
+    type: tool
+    module: src.tooling.tools
+    args: [lat, long]
+    params:
+      returns: str
+  handle:
+    type: async
+    module: src.core.event_handlers
+    args: [self, event]
+  hash_refresh_token:
+    type: sync
+    module: src.api.auth.dependencies
+    args: [token]
+    params:
+      returns: str
+  is_connected:
+    type: sync
+    module: src.core.mcp_manager
+    args: [self, server_name]
+    params:
+      returns: bool
+  list_connected_servers:
+    type: sync
+    module: src.core.mcp_manager
+    args: [self]
+    params:
+      returns: List[str]
+  list_conversations:
+    type: async
+    module: src.api.routers.chat
+    args: [user_id, is_archived, limit, offset]
+  list_tools:
+    type: async
+    module: src.api.routers.tools
+  login:
+    type: async
+    module: src.api.auth.router
+    args: [user_login, auth_db]
+  logout:
+    type: async
+    module: src.api.auth.router
+    args: [refresh_request, auth_db]
+  logout_all:
+    type: async
+    module: src.api.auth.router
+    args: [current_user, auth_db]
+  pop_item:
+    type: async
+    module: src.openai_agents_extensions.supabase_session
+    args: [self]
+  process_event:
+    type: async
+    module: src.core.event_handlers
+    args: [self, event]
+  refresh_token:
+    type: async
+    module: src.api.auth.router
+    args: [refresh_request, auth_db]
+  register:
+    type: async
+    module: src.api.auth.router
+    args: [user_create, auth_db]
+  revoke_all_refresh_tokens:
+    type: async
+    module: src.api.auth.dependencies
+    args: [user_id, auth_db]
+    params:
+      returns: None
+  revoke_refresh_token:
+    type: async
+    module: src.api.auth.dependencies
+    args: [refresh_token, auth_db]
+    params:
+      returns: None
+  run_agent_stream:
+    type: async
+    module: src.core.agent_loop
+    args: [agent, event_processor, conversation_manager, message, client_tools]
+    params:
+      returns: AsyncGenerator
+  send_message:
+    type: async
+    module: src.api.routers.chat
+    args: [request, background_tasks, user_id, session_factory]
+  session:
+    type: sync
+    module: src.services.conversation_context_manager
+    args: [self]
+    params:
+      returns: Session
+  sessions_key:
+    type: sync
+    module: src.config
+    args: [self]
+    params:
+      returns: str
+  sessions_url:
+    type: sync
+    module: src.config
+    args: [self]
+    params:
+      returns: str
+  setup_logging:
+    type: sync
+    module: src.logging_config
+    args: [log_file, log_level, max_bytes, backup_count]
+    params:
+      returns: None
+  shutdown:
+    type: async
+    module: src.core.mcp_manager
+    args: [cls]
+  shutdown_event:
+    type: async
+    module: src.api.api
+  star_conversation:
+    type: async
+    module: src.api.routers.chat
+    args: [session_id, user_id]
+  startup_event:
+    type: async
+    module: src.api.api
+  store_refresh_token:
+    type: async
+    module: src.api.auth.dependencies
+    args: [user_id, refresh_token, auth_db, expires_delta, user_agent, ip_address]
+    params:
+      returns: None
+  tool_metadata:
+    type: sync
+    module: src.tooling.tools
+    args: [metadata]
+  unit_converter:
+    type: tool
+    module: src.tooling.tools
+    args: [value, from_unit, to_unit]
+    params:
+      returns: str
+  validate_debug:
+    type: sync
+    module: src.config
+    args: [cls, v]
+  validate_jwt_secret_key:
+    type: sync
+    module: src.config
+    args: [cls, v]
+  validate_log_level:
+    type: sync
+    module: src.config
+    args: [cls, v]
+  validate_refresh_token:
+    type: async
+    module: src.api.auth.dependencies
+    args: [refresh_token, auth_db]
+    params:
+      returns: Optional[UserModel]
+  verify_token:
+    type: sync
+    module: src.api.auth.dependencies
+    args: [token]
+    params:
+      returns: Optional[str]
+
+files:
+  .env.local:
+    type: literal
+    actions: [read]
+    params:
+      path: [Path.parent.parent]
+  config.log_file:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+  log_dir:
+    type: variable
+    actions: [write]
+    params:
+      caller: [log_dir.mkdir]
+  log_file:
+    type: variable
+    actions: [read]
+    params:
+      caller: [Path]
+
+networks:
+  mcp.context7.com:
+    type: api
+    actions: [connect]
+    urls: [/mcp]
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [MCPServerStreamableHttp]
+      links: [server.2]
+  openrouter.ai:
+    type: api
+    actions: [GET]
+    urls: [/api/v1]
+    protocols: [https]
+    ports: ["443"]
+    params:
+      caller: [_create_cheap_model, _create_model]
+      links: [base_url]
