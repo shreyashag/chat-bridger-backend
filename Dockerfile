@@ -10,9 +10,11 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv sync --frozen --no-cache --no-dev
+RUN uv sync --frozen --no-cache --no-dev --no-install-project
 
 COPY . .
+
+RUN uv sync --frozen --no-cache --no-dev
 
 RUN mkdir -p logs
 
